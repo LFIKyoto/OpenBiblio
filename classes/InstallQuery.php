@@ -113,13 +113,14 @@ class InstallQuery extends Query {
       $sqlStmt = "";
       while (!feof ($fp)) {
         $char = fgetc($fp);
+        $sqlStmt .= $char;
         if ($char == ";") {
           //replace table prefix, we're doing it here as the install script may
           //want to override the required prefix (eg. during upgrade / conversion 
           //process)
           $sql = str_replace("%prfx%",$tablePrfx,$sqlStmt);
           //replace ENGINE with TYPE for old MySQL versions
-          $MySQLn = explode('.', implode('', explode('-', mysql_get_server_info())));
+          $MySQLn = explode('.', implode('', explode('-', $this->server_info())));
           if ($MySQLn[0] < '5') {
             $sql = str_replace("ENGINE=","TYPE=",$sql);
             $sql = str_replace("engine=","type=",$sql);
@@ -129,8 +130,6 @@ class InstallQuery extends Query {
           }
           $this->exec($sql);
           $sqlStmt = "";
-        } else {
-          $sqlStmt .= $char;
         }
       }
       fclose($fp);

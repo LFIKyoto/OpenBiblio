@@ -35,7 +35,7 @@
 
   # testing connection and current version
   $installQ = new InstallQuery();
-  $err = $installQ->connect_e();
+  $err = $installQ->connect_error;
   if ($err) {
     Fatal::dbError($e->sql, $e->msg, $e->dberror);
   }

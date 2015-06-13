@@ -27,8 +27,8 @@ class BiblioQuery extends Query {
   var $_loc;
   var $_fieldsInBiblio;
 
-  function BiblioQuery() {
-    $this->Query();
+  function __construct() {
+    parent::__construct();
     $this->_loc = new Localize(OBIB_LOCALE,"classes");
     $this->_fieldsInBiblio = array(
       '100a' => 'author',
@@ -238,7 +238,7 @@ class BiblioQuery extends Query {
     // inserting biblio row
     $biblioFlds = $biblio->getBiblioFields();
 
-    $bibfields = array();	// fields in biblio table
+    $bibfields = array();   // fields in biblio table
     foreach ($this->_fieldsInBiblio as $key => $name) {
       if (array_key_exists($key, $biblioFlds) and $biblioFlds[$key]->getFieldid() == '') {
         $bibfields[$name] = $biblioFlds[$key]->getFieldData();

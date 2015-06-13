@@ -27,7 +27,7 @@ class BiblioSearchQuery extends Query {
   var $_loc;
 
   function BiblioSearchQuery() {
-    $this->Query();
+    parent::__construct(OBIB_CHARSET);
     $this->_loc = new Localize(OBIB_LOCALE,"classes");
   }
   function setItemsPerPage($value) {
@@ -202,7 +202,7 @@ class BiblioSearchQuery extends Query {
     }
 
     # Calculate stats based on row count
-    $this->_rowCount = implode(mysql_fetch_row(mysql_query('select found_rows();')));
+    $this->_rowCount = $this->_conn->numRows();
     $this->_pageCount = ceil($this->_rowCount / $this->_itemsPerPage);
     return true;
 

@@ -19,8 +19,8 @@ class BiblioCopyQuery extends Query {
   var $_rowCount = 0;
   var $_loc;
 
-  function BiblioCopyQuery() {
-    $this->Query();
+  function __construct() {
+    parent::__construct();
     $this->_loc = new Localize(OBIB_LOCALE,"classes");
   }
 
@@ -197,12 +197,12 @@ class BiblioCopyQuery extends Query {
                         . "where biblio_copy.bibid = %Q",
                         $bibid);
     if (!$this->_query($sql, $this->_loc->getText("biblioCopyQueryErr11"))) {
-		//echo 'copyid fetch failed.';
+        //echo 'copyid fetch failed.';
       return false;
     }
-		//echo 'got something!';
+        //echo 'got something!';
     $array = $this->_conn->fetchRow();
-		$nmbr = $array["lastNmbr"];
+        $nmbr = $array["lastNmbr"];
     return $nmbr+1;
   }
 
@@ -385,7 +385,7 @@ class BiblioCopyQuery extends Query {
       $prefix = "and (";
       for ($i = 0; $i < count($bibids); $i++) {
         $sql .= $prefix;
-	$sql .= $this->mkSQL("(bibid=%N and copyid=%N)",
+    $sql .= $this->mkSQL("(bibid=%N and copyid=%N)",
                              $bibids[$i], $copyids[$i]);
         $prefix = " or ";
       }

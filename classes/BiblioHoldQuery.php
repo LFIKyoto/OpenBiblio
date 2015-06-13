@@ -19,8 +19,8 @@ class BiblioHoldQuery extends Query {
   var $_rowCount = 0;
   var $_loc;
 
-  function BiblioHoldQuery() {
-    $this->Query();
+  function __construct() {
+    parent::__construct();
     $this->_loc = new Localize(OBIB_LOCALE,"classes");
   }
 
@@ -75,7 +75,7 @@ class BiblioHoldQuery extends Query {
                         . "and biblio_hold.copyid = biblio_copy.copyid "
                         . "and biblio_hold.bibid = biblio.bibid "
                         . "and biblio_hold.mbrid = %N "
-			. "order by biblio_hold.hold_begin_dt desc",
+            . "order by biblio_hold.hold_begin_dt desc",
                         $mbrid);
 
     if (!$this->_query($sql, $this->_loc->getText("biblioHoldQueryErr2"))) {

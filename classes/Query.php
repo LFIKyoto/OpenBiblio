@@ -5,55 +5,42 @@
  
 $_Query_lock_depth = 0;
 
-class Query {
-  var $_link;
+class Query extends mysqli{
+  var $_linkcharset;
 
-  /* This constructor will never do more than call connect_e() and throw a
-   * fatal error if it fails.  If you want to catch the error, subclass Query and
-   * call connect_e() yourself.
-   */
-  function Query() {
-    $e = $this->connect_e();
-    if ($e) {
-      Fatal::dbError($e->sql, $e->msg, $e->dberror);
+    //!!! this->Query - is implemented by mysqli
+    public function __construct($usecharset = OBIB_CHARSET) {
+        parent::__construct(OBIB_HOST, OBIB_USERNAME, OBIB_PWD, OBIB_DATABASE);
+        if ($this->connect_error) {
+            echo $this->connect_error;
+            return array(NULL
+                    , new DbError(
+                        "Connecting to database server..."
+                        , "Cannot connect to database server."
+                        )
+                    , $this->error );
+        }
+
+        if ($usecharset == 'OBIB_CHARSET')
+            $usecharset = NULL;
+
+        if ($usecharset == NULL){
+            $usecharset = DB_CHARSET;
+        }
+
+        if ($usecharset == 'DB_CHARSET')
+                $usecharset = NULL;
+
+        if ($usecharset != NULL)
+            $this->UseLinkCharset($usecharset);
     }
-  }
-  function connect_e() {
-    list($this->_link, $e) = Query::_connect_e();
-    return $e;
-  }
-  /* This static method shares the actual DBMS connection
-   * with all Query instances.
-   */
-  function _connect_e() {
-    static $link;
-    if (!isset($link)) {
-      if (!function_exists('mysql_connect')) {
-        return array(NULL, new DbError("Checking for MySQL Extension...",
-                           "Unable to connect to database.",
-                           "The MySQL extension is not available"));
-      }
-      $link = mysql_connect(OBIB_HOST,OBIB_USERNAME,OBIB_PWD);
-      if (!$link) {
-        return array(NULL, new DbError("Connecting to database server...",
-                                       "Cannot connect to database server.",
-                                       mysql_error()));
-      }
-      $rc = mysql_select_db(OBIB_DATABASE, $link);
-      if (!$rc) {
-        return array(NULL, new DbError("Selecting database...",
-                                       "Cannot select database.",
-                                       mysql_error($link)));
-      }
-    }
-    return array($link, NULL);
-  }
-  
+
   function act($sql) {
     $results = $this->_act($sql);
     if (!is_bool($results)) {
       Fatal::dbError($sql, "Action query returned results.", 'No DBMS error.');
     }
+    return $results;
   }
   function select($sql) {
     $results = $this->_act($sql);
@@ -83,21 +70,42 @@ class Query {
     }
   }
   function _act($sql) {
-    if (!$this->_link) {
-      Fatal::internalError('Tried to make database query before connection.');
-    }
-    $r = mysql_query($sql, $this->_link);
+    $r = $this->query($sql);
     if ($r === false) {
-      Fatal::dbError($sql, 'Database query failed', mysql_error());
+      Fatal::dbError($sql, 'Database query failed', $this->error);
     }
     return $r;
   }
-  
+
+  function CharSet2MySQL($value){
+    if (strncmp($value, "iso-8859-", 9) == 0) {
+        return str_replace("iso-8859-", "latin", $value);
+    }
+    else
+        return str_replace("utf-", "utf", $value);
+  }
+
+
+  function UseLinkCharset($usecharset){
+    $tocharset = $this->CharSet2MySQL($usecharset);
+    if (strlen($tocharset) <= 0)
+        Fatal::dbError($usecharset, "connect charset:".$tocharset." obibcharset:".OBIB_CHARSET, 'No DBMS error.');
+
+    if ($this->_linkcharset == $tocharset)
+        return true;
+        $sql = "set names ".$tocharset;
+        if (!$this->_act($sql)) return false;
+        $sql = "set character_set_connection=".$tocharset;
+        if (!$this->_act($sql)) return false;
+        $this->_linkcharset = $tocharset;
+    return true;
+  }
+
   /* This is not easily portable to many SQL DBMSs.  A better scheme
    * might be something like PEAR::DB's sequences.
    */
   function getInsertID() {
-    return mysql_insert_id($this->_link);
+    return $this->insert_id;
   }
   
   /* Locking functions
@@ -220,10 +228,10 @@ class Query {
           $SQL .= $this->_numstr($arg);
           break;
         case 'Q':
-          $SQL .= "'".mysql_real_escape_string($arg, $this->_link)."'";
+          $SQL .= '\''.$this->real_escape_string($arg).'\'';
           break;
         case 'q':
-          $SQL .= mysql_real_escape_string($arg, $this->_link);
+          $SQL .= $this->real_escape_string($arg);
           break;
         default:
           Fatal::internalError('Bad mkSQL() format string.');
@@ -273,7 +281,7 @@ class Query {
       return $r;
     } else {
       $rows = array();
-      while($row = mysql_fetch_assoc($r)) {
+      while($row = mysqli_fetch_assoc($r)) {
         $rows[] = $row;
       }
       return $rows;
@@ -282,7 +290,7 @@ class Query {
   function eexec($sql) {
     return $this->exec($sql);
   }
-  function _query($sql, $msg) {
+  function _query($sql, $msg = '') {    
     $r = $this->_act($sql);
     $this->_conn = new DbOld($r, $this->getInsertId());
     return $r;
@@ -322,10 +330,19 @@ class DbIter extends Iter {
     $this->results = $results;
   }
   function count() {
-    return mysql_num_rows($this->results);
+    return mysqli_num_rows($this->results);
   }
   function next() {
-    $r = mysql_fetch_assoc($this->results);
+    $r = mysqli_fetch_assoc($this->results);
+
+    if ($r === false) {
+      return NULL;
+    }
+    return $r;
+  }
+
+  function fetch_row() {
+    $r = mysqli_fetch_row($this->results);
     if ($r === false) {
       return NULL;
     }
@@ -345,7 +362,7 @@ class DbOld {
     return $this->id;
   }
   function numRows() {
-    return mysql_num_rows($this->results);
+    return mysqli_num_rows($this->results);
   }
   function fetchRow($arrayType=OBIB_ASSOC) {
     if (is_bool($this->results)) {
@@ -353,19 +370,19 @@ class DbOld {
     }
     switch ($arrayType) {
       case OBIB_NUM:
-        return mysql_fetch_row($this->results);
+        return mysqli_fetch_row($this->results);
         break;
       case OBIB_BOTH:
-        return mysql_fetch_array($this->results, MYSQL_BOTH);
+        return mysqli_fetch_array($this->results, MYSQL_BOTH);
         break;
       case OBIB_ASSOC:
       default:
-        return mysql_fetch_assoc($this->results);
+        return mysqli_fetch_assoc($this->results);
     }
     return false;
   }
   function resetResult() {
-    mysql_data_seek($this->results, 0);
+    mysqli_data_seek($this->results, 0);
   }
 }
 

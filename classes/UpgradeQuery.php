@@ -6,9 +6,9 @@
 require_once("../classes/InstallQuery.php");
 
 class UpgradeQuery extends InstallQuery {
-  function UpgradeQuery() {
+  function __construct() {
     # Call query constructor so database connection gets made
-    $this->Query();
+    parent::__construct();
   }
   function insertBiblioFields($tag, $subFieldCd, 
                               $fromTablePrfx, $toTablePrfx,  $colName){
@@ -83,7 +83,7 @@ class UpgradeQuery extends InstallQuery {
     do {
       $version = $this->getCurrentDatabaseVersion($toTablePrfx);
       if ($version == OBIB_LATEST_DB_VERSION) {
-        break;	# Done
+        break;  # Done
       } elseif (isset($upgrades[$version])) {
         $func = $upgrades[$version];
         list($n, $error) = $this->$func($toTablePrfx, $tmpPrfx);

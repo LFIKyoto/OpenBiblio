@@ -11,15 +11,15 @@
   
   $installQ = new InstallQuery();
   $version = NULL;
-  $error = $installQ->connect_e();
-  if (!$error) {
+  $mysql_date = NULL;
+  if (!$installQ->connect_errno) {
     $version = $installQ->getCurrentDatabaseVersion();
+    // 0.7: CircQuery uses PHP to determine current time, other scripts use MySQL
+    $mysql_date = implode($installQ->select('select sysdate();')->fetch_row() );
     $installQ->close();
   }
   
   include("../install/header.php");
-  // 0.7: CircQuery uses PHP to determine current time, other scripts use MySQL
-  $mysql_date = implode(mysql_fetch_row(mysql_query('select sysdate();')));
   $php_date = date('Y-m-d H:i:s');
   if ($php_date != $mysql_date) {
 ?>
