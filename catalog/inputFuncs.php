@@ -72,12 +72,18 @@ function printUsmarcInputText($tag,$subfieldCd,$required,&$postVars,&$pageErrors
   echo ":\n</td>\n";
   echo "<td valign=\"top\" class=\"primary\">\n";
   if ($cntrlType == OBIB_TEXTAREA_CNTRL) {
-    echo "<textarea name=\"values[".H($formIndex)."]\" cols=\"".H($cols)."\" rows=\"".H($rows)."\">";
-    echo H($value)."</textarea>";
+    ## lookup mods F.LaPlante - June 2009
+    // echo "<textarea name=\"values[".H($formIndex)."]\" cols=\"".H($cols)."\" rows=\"".H($rows)."\">";
+    // echo H($value)."</textarea>";
+    $attrs= array('cols'=>H($cols),'rows'=>H($rows));
+    echo inputField('textarea', "values[".H($formIndex)."]", H($value), $attrs);
   } else {
-    echo "<input type=\"text\"";
-    echo " name=\"values[".H($formIndex)."]\" size=\"".H($size)."\" maxlength=\"".H($maxLen)."\" ";
-    echo "value=\"".H($value)."\" >";
+    ## lookup mods F.LaPlante - June 2009
+    // echo "<input type=\"text\"";
+    // echo " name=\"values[".H($formIndex)."]\" size=\"".H($size)."\" maxlength=\"".H($maxLen)."\" ";
+    // echo "value=\"".H($value)."\" >";
+    $attrs= array('size'=>H($size),'maxlength'=>H($maxLen));
+    echo inputField('text', "values[".H($formIndex)."]", H($value), $attrs);
   }
   if ($error != "") {
     echo "<br><font class=\"error\">";
