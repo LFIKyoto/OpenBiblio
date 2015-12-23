@@ -13,60 +13,63 @@
 		$rslt = array();
 		
     while(list($key,list($tagpath,$data))=each($ar)) {
-      if (preg_match("/^\(3,([^)]*)\)\(3,([^)]*)\)$/",$tagpath,$res)) {
-				if (!empty($theTag)) {
-					$marcFlds["$theTag"] = $subFlds;	// store previous data
-				}
-        $theTag = "$res[1]";
-        $subFlds = array(); //reset($subFlds);
-    	}
-    	elseif (preg_match("/^\(3,([^)]*)\)\(3,([^)]*)\)\(3,([^)]*)\)$/",$tagpath,$res)) {
-        $subFlds["$res[3]"] = "$data";
-
-        $data = trim(htmlspecialchars($data));
-				$fldId = ($theTag . $res[3]);
-
-				// MAB (13Apr2008 - This is a hack to handle the author sometimes returned as 100a
-				// and sometimes 700a and sometimes both
-				// this assumes 100a is seen before 700a if both returned
-				if ($fldId == '100a') 
-					$fld100a = true;
-				elseif ($fldId == '700a' && !$fld100a) 
-					$fldId = '100a';
-
-				if ($postit == false) {
-					//echo "special for multi hit choice selection";
-					$rsltStr = display_record($fldId, $data, $hit);  //<<<<<<<<<<<<<<<<<
-				}
-				elseif ($postit == true) {
-					//echo "normal processing";
-//					if (isset($_POST[$nHost][$nHit][$fldId])) $_POST[$nHost][$nHit][$fldId] .= '; ';
-					if (isset($rslt[$fldId])) $rslt[$fldId] .= '; ';
-					switch ($theTag) {
-					case '538':  ##### Systems Details Note (R)
-						if	($res[3] == 'a')
-//							$_POST[$nHost][$nHit]['520a'] .= $data; ## Note (NR)
-							$rslt['520a'] .= $data; ## Note (NR)
-						break;
-        	case '650':  ##### Subject Added Entry - Topical Term (R)
-        		if     ($res[3] == 'a') {
-							if (isset($subjectCnt)) $subjectCnt++; else $subjectCnt = '';
-//	      	  		$_POST[$nHost][$nHit]["650a$subjectCnt"] .= $data; // topical term (NR)
-	      	  		$rslt["650a$subjectCnt"] .= $data; // topical term (NR)
-						}
-						else
-							#### following line is a patch by Hans van der Weij
-//							if (!is_numeric($res[3])) {$_POST[$nHost][$nHit]["650a$subjectCnt"] .= ', ' . $data;}
-							if (!is_numeric($res[3])) {$rslt["650a$subjectCnt"] .= ', ' . $data;}
-									//        			$_POST["650a$subjectCnt"] .= ', ' . $data; // details (NR)
-        		break;
-					default:		##### everything else
-//						$_POST[$nHost][$nHit][$fldId] .= $data;
-						$rslt[$fldId] .= $data;
-						break;
-					}
-				}
-      }
+        $data = trim(htmlspecialchars($data, ENT_SUBSTITUTE, 'UTF-8' ));
+	//echo "tagpath=$tagpath data=$data<br>\n";
+        // Title
+	if ($tagpath == '(3,200)(3,1 )(3,a)') 
+	    $rslt['245a'] .= $data;
+        // ISBN
+        elseif ($tagpath == '(3,073)(3, 0)(3,a)')
+	    $rslt['020a'] .= $data;
+	// Author (First Name)
+        elseif ($tagpath == '(3,700)(3, |)(3,b)') {
+	    if (empty($rslt['100a']))
+		$rslt['100a'] = $data;
+	    else
+                $rslt['100a'] = $data . ' ' . $rslt['100a'];
+	}
+	// Author (Last Name)
+	elseif ($tagpath == '(3,700)(3, |)(3,a)') {
+	    if (empty($rslt['100a']))
+	        $rslt['100a'] = $data;
+            else
+                $rslt['100a'] .= ' ' . $data;
+	}
+	// Publication
+        elseif (preg_match("/^\(3,210\)\(3,.*\)\(3,c\)$/", $tagpath))
+	    $rslt['260b'] .= $data;
+	// Date of publication
+        elseif (preg_match("/^\(3,210\)\(3,.*\)\(3,d\)$/", $tagpath))
+	    $rslt['260c'] .= $data;
+	// Location of publication
+        elseif (preg_match("/^\(3,210\)\(3,.*\)\(3,a\)$/", $tagpath))
+	    $rslt['260a'] .= $data;
+	// Purchase price
+	elseif (preg_match("/^\(3,010\)\(3,.*\)\(3,d\)$/", $tagpath))
+	    $rslt['541h'] .= $data;
+	// Physical Description (Extent)
+	elseif (preg_match("/^\(3,215\)\(3,.*\)\(3,a\)$/", $tagpath))
+	    $rslt['300a'] .= $data;
+	// Physical Description (Other)
+	elseif (preg_match("/^\(3,215\)\(3,.*\)\(3,c\)$/", $tagpath))
+	    $rslt['300b'] .= $data;
+	// Physical Description (Dim)
+	elseif (preg_match("/^\(3,215\)\(3,.*\)\(3,d\)$/", $tagpath))
+	    $rslt['300c'] .= $data;
+	// Summary (part 1)
+	elseif (preg_match("/^\(3,200\)\(3,1.*\)\(3,b\)$/", $tagpath)) {
+	    if (empty($rslt['520a']))
+		$rslt['520a'] = $data;
+	    else
+                $rslt['520a'] = $data . ' ' . $rslt['520a'];
+	}
+	// Summary (part 2)
+	elseif (preg_match("/^\(3,200\)\(3,1.*\)\(3,g\)$/", $tagpath)) {
+	    if (empty($rslt['520a']))
+		$rslt['520a'] = $data;
+	    else
+                $rslt['520a'] .= ' ' . $data;
+	}
     }
     return $rslt;
 	}
